@@ -1,0 +1,70 @@
+class Main {
+    function void main(){
+        var NimBoard board;
+        var int board_length;
+        var int human_pickup_num;
+        var int computer_pickup_num;
+        let board = NimBoard.new();
+        let board_length = board.getBoardLength();
+        do Main.instructions();
+        while (board_length > 0) {
+            let human_pickup_num = Main.HumanPickup(board);
+            do board.pickup(human_pickup_num);
+            do Output.printString("The Board now looks like:");
+            do board.printArray();
+            let computer_pickup_num = Main.ComputerPickup(human_pickup_num);
+            do board.pickup(computer_pickup_num);
+            do Output.printString("Your opponent picked up ");
+            do Output.printInt(computer_pickup_num);
+            do Output.printString(" pieces");
+            do Output.println();
+            let board_length = board.getBoardLength();
+        }
+        do Output.printString("You lost. Try again next time...");
+        do board.dispose();
+        return;
+    }
+
+    function int HumanPickup(NimBoard board){
+        var boolean within_range;
+        var int pickup_num;
+        let within_range = false;
+        do Output.printString("The Board currently looks like:");
+        do board.printArray();
+        while (~within_range) {
+            let pickup_num = Keyboard.readInt("How many stones would you like to pick up? Please enter 1,2 or 3:");
+            if ((pickup_num > 0) & (pickup_num < 4)) {
+                let within_range = true;
+            }
+        }
+        return pickup_num;
+    }
+
+    function int ComputerPickup(int last_human_pickup) {
+        var int pickup_num;
+        if (last_human_pickup = 1) {
+            let pickup_num = 3;
+        }
+        if (last_human_pickup = 2) {
+            let pickup_num = 2;
+        }
+        if (last_human_pickup = 3) {
+            let pickup_num = 1;
+        }
+        return pickup_num;
+    }
+
+    function void instructions() {
+        do Output.printString("Welcome to Dr. Nim");
+        do Output.println();
+        do Output.printString("Dr. Nim is a game with a board of 12 stones");
+        do Output.println();
+        do Output.printString("Each turn you will pick up 1 to 3 stones");
+        do Output.println();
+        do Output.printString("Then the computer will pick up 1 to 3 stones");
+        do Output.println();
+        do Output.printString("Whoever picks up the last stone wins!");
+        do Output.println();
+        return;
+    }
+}

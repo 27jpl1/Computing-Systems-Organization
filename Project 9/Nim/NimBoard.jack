@@ -1,0 +1,56 @@
+class NimBoard {
+    field Array board;
+    field int piecesPickedUp;
+
+    constructor NimBoard new() {
+        var int i;
+        let i = 0;
+        let piecesPickedUp = 0;
+        let board = Array.new(12);
+        while (i < 12) {
+            let board[i] = "*";
+            let i = i + 1;
+        }
+        return this;
+    }
+
+    method void dispose() {
+        do Memory.deAlloc(this);
+        return;
+    }
+
+    method void pickup(int num){
+        var int i;
+        let piecesPickedUp = piecesPickedUp + num;
+        let i = 0;
+        do Memory.deAlloc(board);
+        if ((12 - piecesPickedUp) < 1){
+            let i = 2; //Is here so no size 0 array is created
+        }
+        else{
+            let board = Array.new(12 - piecesPickedUp);
+            while (i < (12 - piecesPickedUp)) {
+                let board[i] = "*";
+                let i = i + 1;
+            }
+        }
+        return;
+    }
+    
+    method void printArray(){
+        var int i;
+        let i = 0;
+        while (i < (12 - piecesPickedUp)){
+            do Output.printString(board[i]);
+            let i = i + 1;
+        }
+        do Output.println();
+        return;
+    }
+
+    method int getBoardLength(){
+        var int length;
+        let length = 12 - piecesPickedUp;
+        return length;
+    }
+}

@@ -23,6 +23,7 @@ class Compiler:
     self.symtable = SymbolTable()
     self.num_ifs_called = 0
     self.num_whiles_called = 0
+    self.class_name = ""
     
   def expect(self, expected_token):
     token = self.tokenizer.next()
@@ -32,49 +33,62 @@ class Compiler:
 
   def compile_class(self):
     self.expect("class")
-    class_name = self.tokenizer.next().value
+    self.class_name = self.tokenizer.next().value
     self.expect("{")
 
     # Do something with classVarDec*
     # If peek = "static" or "field" keep compling classVarDec
-    
-    #while self.tokenizer.peek() == "static" or self.tokenizer.peek() == "field":
-      #self.compileClassVarDec()
+    while self.tokenizer.peek().value == "static" or self.tokenizer.peek().value == "field":
+      print(self.tokenizer.peek().value, "var type")
+      self.compileClassVarDec()
 
     while self.tokenizer.peek().value != "}":
-       self.compile_subroutine_dec(class_name)
+       self.compile_subroutine_dec()
     
     self.expect("}")
 
   def compileClassVarDec(self):
     # ("static" | "field") type varName (',', varName)* ";"
     #these go into the global symbol table
+    print("in class var dec")
+    kind = self.tokenizer.next().value
+    var_type = self.tokenizer.next().value
+    varName = self.tokenizer.next().value
+    if kind == "static":
+      self.symtable.add_global(varName, var_type, STATIC)
+    elif kind == "field":
+      self.symtable.add_global(varName, var_type, THIS)
+    else:
+      print(f"expected field or static but got {kind}")
+      sys.exit(1)
+    print(self.tokenizer.peek().value, "asds")
+    while self.tokenizer.peek().value == ",":
+      self.expect(',')
+      var_name = self.tokenizer.next().value
+      if kind == "static":
+        self.symtable.add_global(var_name, var_type, STATIC)
+      elif kind == "field":
+        self.symtable.add_global(var_name, var_type, THIS)
+      else:
+        print(f"expected field or static but got {kind}")
+        sys.exit(1)
+    self.expect(";")
     
-    #kind = self.tokenizer.next()
-    # type = self.tokenizer.next().value
-    # varName = self.tokenizar.next().value
-    #self.symtable.add_global(varName, type, kind)
-    # while self.tokenizer.peek().value == ",":
-    #   self.expect(',')
-    #   var_name = self.tokenizer.next().value
-    #   self.symtable.add_global(var_name, var_type, kind)
-    #
 
     # Static
     #   Add to global symtable
     #   To use:
     #       push static 0 or pop static 0
-    pass
 
-  def compile_subroutine_dec(self, class_name):
+  def compile_subroutine_dec(self):
     # ('constructor' | 'function' | 'method')
-
+    print(self.symtable.global_dict)
     self.symtable.reset() #reset the local and arg dicts to be empty
-    subroutine_type = self.tokenizer.next()
+    subroutine_type = self.tokenizer.next().value
 
     # Constructor
     #   Allocate memory for each field variable
-    #   push constant _   (_ = the number or fields)
+    #   push constant _   (_ = the number or fields)   Might have to a add a function in symtable to see how many fields there are
     #   Call Memory.alloc 1
     #   pop pointer 0  (pointer 0 = this)
 
@@ -82,10 +96,10 @@ class Compiler:
     #              When returning this, write push pointer 0 (this can be done in compileExpression after null,true, and false)
 
     # Method
-    #   In a method we must deal with the "secret" extra argument, the address of the obkect the method is called on
+    #   In a method we must deal with the "secret" extra argument, the address of the object the method is called on
     #   push argument 0
     #   pop pointer 0     // puts that address into this
-    #   When start proccessing a method just add a dummy entry into symbol table so it take up arg 0
+    #   When start proccessing a method just add a dummy entry into symbol table so its take up arg 0
 
     # Nota Bene: if method() (e.g. draw())
     #            push this (pointer 0)
@@ -103,7 +117,7 @@ class Compiler:
       self.compile_ParameterList()
     self.expect(")")
 
-    self.compile_subroutine_body(class_name, subroutine_name)
+    self.compile_subroutine_body(subroutine_name, subroutine_type)
 
   def compile_ParameterList(self):
     var_type = self.tokenizer.next().value
@@ -114,14 +128,25 @@ class Compiler:
       self.compile_ParameterList()
 
 
-  def compile_subroutine_body(self, class_name, subroutine_name):
+  def compile_subroutine_body(self, subroutine_name, subroutine_type):
     # '{' varDec* statements '}'
     self.expect("{")
 
     self.compile_varDecs()
     print(self.symtable.local_dict)
     num_var = self.symtable.get_local_vars()
-    self.writer.write_function(class_name + "." + subroutine_name, num_var)
+    self.writer.write_function(self.class_name + "." + subroutine_name, num_var)
+  
+    if subroutine_type == "constructor":
+      print("in constructor")
+      num_fields = self.symtable.get_field_vars()
+      self.writer.write_push(CONSTANT, num_fields)
+      self.writer.write_call("Memory.alloc", 1)
+      self.writer.write_pop(POINTER, 0)
+    elif subroutine_type == 'method':
+      self.symtable.add_global("Placeholder", int, "Fake")
+      self.writer.write_push(ARGUMENT, 0)
+      self.writer.write_pop(POINTER, 0)
 
     self.compile_Statements()
     print("i compiled statements")
@@ -170,15 +195,19 @@ class Compiler:
     if self.tokenizer.peek().value == "[":
       self.compile_Expression()
       #Will probably have to change this for when global variables are introduced
-      print(self.symtable.local_dict[var_name][1], self.symtable.local_dict[var_name][2])
-      self.writer.write_push(self.symtable.local_dict[var_name][1], self.symtable.local_dict[var_name][2])
+      if var_name in self.symtable.local_dict.keys():
+        self.writer.write_push(self.symtable.local_dict[var_name][1], self.symtable.local_dict[var_name][2])
+      elif var_name in self.symtable.global_dict.keys():
+        self.writer.write_push(self.symtable.global_dict[var_name][1], self.symtable.global_dict[var_name][2])
+      else:
+        print(f"expected to be in symbol table but got var_name {var_name}")
+        sys.exit(1)
       self.writer.write_raw("add")
       is_array = True
     self.expect("=")
     while self.tokenizer.peek().value != ";":
       print(self.tokenizer.peek().value, "peek")
       self.compile_Expression()
-    print("i broke")
     self.expect(";")
     if is_array:
       self.writer.write_pop(TEMP, 0)
@@ -187,8 +216,13 @@ class Compiler:
       self.writer.write_pop(THAT, 0)
     else:
       #Will probably have to change this for when global variables are introduced
-      print(self.symtable.local_dict[var_name][1], self.symtable.local_dict[var_name][2])
-      self.writer.write_pop(self.symtable.local_dict[var_name][1], self.symtable.local_dict[var_name][2])
+      if var_name in self.symtable.local_dict.keys():
+        self.writer.write_pop(self.symtable.local_dict[var_name][1], self.symtable.local_dict[var_name][2])
+      elif var_name in self.symtable.global_dict.keys():
+        self.writer.write_pop(self.symtable.global_dict[var_name][1], self.symtable.global_dict[var_name][2])
+      else:
+        print(f"expected to be in symbol table but got var_name {var_name}")
+        sys.exit(1)
 
   def compile_if(self):
     # 'if' '(' expression ')' '{' statements '}' ('else' '{' statements '}'?)
@@ -350,6 +384,10 @@ class Compiler:
       else:
         self.compile_Term()
       self.writer.write_raw("and")
+    elif peek.value == "this":
+      self.tokenizer.next()
+      print("seen this as return")
+      self.writer.write_push(POINTER, 0)
     else:
       self.compile_Term()
 
@@ -357,9 +395,10 @@ class Compiler:
     # intConst | stringConstant | keywordConstant | varName | varName '[' expression ']' | '(' expression ')' | unaryOp term | subroutineCall
     token = self.tokenizer.next()
     print("term", token.value)
-    if self.tokenizer.peek().value == "(": #if next token is ( then must be a function call
+    if self.tokenizer.peek().value == "(" and token.token_type == IDENTIFIER: #if next token is ( then must be a function call
       num_args = self.compile_Expression_List()
-      self.writer.write_call(token.value, num_args)
+      self.writer.write_push(POINTER, 0)
+      self.writer.write_call(self.class_name + "." + token.value, num_args + 1)
     elif self.tokenizer.peek().value == ".": #if next token is . then must be a __.__ function call (more specifics later I think)
       if token.value in self.symtable.global_dict.keys():
         self.writer.write_push(self.symtable.global_dict[token.value][1], self.symtable.global_dict[token.value][2])
@@ -384,7 +423,13 @@ class Compiler:
       while self.tokenizer.peek().value != "]":
         self.compile_Expression()
       self.expect("]")
-      self.writer.write_push(self.symtable.local_dict[token.value][1], self.symtable.local_dict[token.value][2]) # might change when class variables come into play
+      if token.value in self.symtable.local_dict.keys(): ### added global table here
+        self.writer.write_push(self.symtable.local_dict[token.value][1], self.symtable.local_dict[token.value][2])
+      elif token.value in self.symtable.global_dict.keys():
+        self.writer.write_push(self.symtable.global_dict[token.value][1], self.symtable.global_dict[token.value][2])
+      else:
+        print(f"expected to be in symbol table but got var_name {token.value}")
+        sys.exit(1)
       self.writer.write_raw('add')
       self.writer.write_pop(POINTER, 1)
       self.writer.write_push(THAT, 0)
@@ -402,19 +447,29 @@ class Compiler:
       self.writer.write_raw("not")
     elif token.value == "false":
       self.writer.write_push(CONSTANT, 0)
-    elif token.value in self.symtable.local_dict: #I think this changes somewhat when class varaibles come into play
-      self.writer.write_push(self.symtable.local_dict[token.value][1], self.symtable.local_dict[token.value][2])
     elif token.token_type == STR:
       self.writer.write_String(token.value)
+    elif token.value in self.symtable.local_dict.keys(): #### Added global table here
+      self.writer.write_push(self.symtable.local_dict[token.value][1], self.symtable.local_dict[token.value][2])
+    elif token.value in self.symtable.global_dict.keys():
+      self.writer.write_push(self.symtable.global_dict[token.value][1], self.symtable.global_dict[token.value][2])
+
 
   def compile_Expression_List(self) -> int:
+    print("in expression list")
     self.expect("(")
+    num_args = 0
     if self.tokenizer.peek().value == "(":
       self.compile_Expression_List()
-    num_args = 0
+      num_args += 1
     while self.tokenizer.peek().value != ")":
+      if self.tokenizer.peek().value == "(":
+        num_args += 1
+        self.compile_Expression_List()
       if self.tokenizer.peek().value not in operators and self.tokenizer.peek().value != ",":
         num_args += 1
+      print(num_args)
       self.compile_Expression() 
     self.expect(")")
+    print("finished expression list")
     return num_args

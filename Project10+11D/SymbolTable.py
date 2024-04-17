@@ -31,7 +31,11 @@ class SymbolTable:
         elif kind == THIS:
             self.global_dict[var] = [type, kind, self.field_index]
             self.field_index += 1
+        elif kind == "Fake":
+            self.global_dict[var] = [type, kind, self.field_index]
+            self.field_index += 1
         else:
+            print(var, type, kind)
             print("Error!")
     
     def get_local_vars(self) -> int:
@@ -40,6 +44,14 @@ class SymbolTable:
             if self.local_dict[key][1] == LOCAL:  #this makes sure only local vars are counted
                 total += 1
         return total
+
+    def get_field_vars(self) -> int:
+        total = 0
+        for key in self.global_dict.keys():
+            if self.global_dict[key][1] == THIS:
+                total += 1
+        return total
+
     
     # Symbol table - A dictinoary mapping varaible names to information about a variable
     # Need to know the type, kind (local, argument, static, or field), index within its segment (assigned in sequence starting from 0)

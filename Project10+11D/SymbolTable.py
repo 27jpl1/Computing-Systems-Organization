@@ -31,11 +31,7 @@ class SymbolTable:
         elif kind == THIS:
             self.global_dict[var] = [type, kind, self.field_index]
             self.field_index += 1
-        elif kind == "Fake":
-            self.global_dict[var] = [type, kind, self.field_index]
-            self.field_index += 1
         else:
-            print(var, type, kind)
             print("Error!")
     
     def get_local_vars(self) -> int:

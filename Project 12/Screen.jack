@@ -5,14 +5,15 @@
 
 /**
  * A library of functions for displaying graphics on the screen.
- * The Hack physical screen consists of 512 rows (indexed 0..511, top to bottom)
- * of 256 pixels each (indexed 0..255, left to right). The top left pixel on 
+ * The Hack physical screen consists of 256 rows (indexed 0..255, top to bottom)
+ * of 512 pixels each (indexed 0..511, left to right). The top left pixel on 
  * the screen is indexed (0,0).
  */
 class Screen {
 
     /** Initializes the Screen. */
     function void init() {
+        //current_color
     }
 
     /** Erases the entire screen. */
@@ -26,18 +27,39 @@ class Screen {
 
     /** Draws the (x,y) pixel, using the current color. */
     function void drawPixel(int x, int y) {
+        //Pixel (x, y) is pixel #2^9y + x
+        //Divide by 16 + Sreen memory location to get it's memory location
+        //Within its memory location, (x, y) is pixel # x mod 16
+        //x mod 16 is the same as x & 15 (0000000000001111)
+
+        //Use Memory.peek() to read contents of memory location
+        //Set bit (x mod 16)
+            //To set bit i to one
+            //v = v | 2^i
+            
+            //To set bit i to zero
+            // v = v & -2^i
+        //Write it back with Memory.poke()
     }
 
     /** Draws a line from pixel (x1,y1) to pixel (x2,y2), using the current color. */
     function void drawLine(int x1, int y1, int x2, int y2) {
+        //Bresenhan's Algorithm
+        //Look at book to work through
+        //Careful to handle all directions
+        //Maybe special cases for horizontal and or vertical lines
     }
 
     /** Draws a filled rectangle whose top left corner is (x1, y1)
      * and bottom right corner is (x2,y2), using the current color. */
     function void drawRectangle(int x1, int y1, int x2, int y2) {
+        //Just draw a bunch of horizontal lines
+        //Could make a helper function for drawing horizontal lines
+        //If have time, can optimize horizontal line drawing
     }
 
     /** Draws a filled circle of radius r<=181 around (x,y), using the current color. */
     function void drawCircle(int x, int y, int r) {
+        //Just watch vid back
     }
 }

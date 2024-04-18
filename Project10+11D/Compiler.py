@@ -85,6 +85,8 @@ class Compiler:
     print(self.symtable.global_dict)
     self.symtable.reset() #reset the local and arg dicts to be empty
     subroutine_type = self.tokenizer.next().value
+    if subroutine_type == "method":
+      self.symtable.add_local("Placeholder", int, ARGUMENT) #Dummy entry has to be added before compiling var decs
 
     # Constructor
     #   Allocate memory for each field variable
@@ -133,7 +135,7 @@ class Compiler:
     self.expect("{")
 
     self.compile_varDecs()
-    print(self.symtable.local_dict)
+    print(subroutine_name, "local", self.symtable.local_dict)
     num_var = self.symtable.get_local_vars()
     self.writer.write_function(self.class_name + "." + subroutine_name, num_var)
   
@@ -144,11 +146,11 @@ class Compiler:
       self.writer.write_call("Memory.alloc", 1)
       self.writer.write_pop(POINTER, 0)
     elif subroutine_type == 'method':
-      self.symtable.add_global("Placeholder", int, "Fake")
+      print("method", self.symtable.local_dict)
       self.writer.write_push(ARGUMENT, 0)
       self.writer.write_pop(POINTER, 0)
 
-    self.compile_Statements()
+    self.compile_Statements() 
     print("i compiled statements")
     self.expect("}")
 
@@ -388,6 +390,15 @@ class Compiler:
       self.tokenizer.next()
       print("seen this as return")
       self.writer.write_push(POINTER, 0)
+    elif peek.value == "|":
+      self.tokenizer.next()
+      print("made to |")
+      if self.tokenizer.peek().value == "(":
+        self.compile_Expression_List()
+      else:
+        self.compile_Term()
+      self.writer.write_raw("or")
+      print("wrote or")
     else:
       self.compile_Term()
 

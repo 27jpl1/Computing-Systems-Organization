@@ -106,3 +106,6 @@ class Tokenizer:
     
     def peek(self) -> Token:
         return self.tokens[self.cur_token]
+    
+    def past(self) -> Token:
+        return self.tokens[self.cur_token - 1]

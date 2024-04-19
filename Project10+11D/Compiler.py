@@ -336,13 +336,22 @@ class Compiler:
       self.writer.write_call("Math.divide", 2)
       print("wrote divide")
     elif peek.value == "-":
-      self.tokenizer.next()
-      print("got into -")
-      if self.tokenizer.peek().value == "(":
-        self.compile_Expression_List()
+      if self.tokenizer.past().value == "(" or self.tokenizer.past().value == "=":
+        print("I found neg")
+        self.tokenizer.next()
+        if self.tokenizer.peek().value == "(":
+          self.compile_Expression_List()
+        else:
+          self.compile_Term()
+        self.writer.write_raw("neg")
       else:
-        self.compile_Term()
-      self.writer.write_raw("sub")
+        self.tokenizer.next()
+        print("got into -")
+        if self.tokenizer.peek().value == "(":
+          self.compile_Expression_List()
+        else:
+          self.compile_Term()
+        self.writer.write_raw("sub")
     elif peek.value == "&lt;":
       print("i see the less than")
       self.tokenizer.next()

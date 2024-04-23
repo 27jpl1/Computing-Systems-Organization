@@ -18,6 +18,10 @@ class Screen {
 
     /** Erases the entire screen. */
     function void clearScreen() {
+        //set color to white then
+        //can draw rectangle over entire screen
+        
+        //could also loop through the memory addresses and set them all to 0
     }
 
     /** Sets the current color, to be used for all subsequent drawXXX commands.

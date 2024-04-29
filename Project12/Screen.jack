@@ -11,52 +11,156 @@
  */
 class Screen {
 
+    static boolean current_color;
+    static Array powersOfTwo;
+
     /** Initializes the Screen. */
     function void init() {
-        //current_color
+        var int index, power;
+        let powersOfTwo = Array.new(16);
+        let index = 0;
+        let power = 1;
+        while (index < 16) {
+            let powersOfTwo[index] = power;
+            let power = power + power;
+            let index = index + 1;
+        }
+
+        let current_color = true;
+        return;
     }
 
     /** Erases the entire screen. */
     function void clearScreen() {
-        //set color to white then
-        //can draw rectangle over entire screen
-        
-        //could also loop through the memory addresses and set them all to 0
+        var int addr;
+        let addr = 16384;
+        while (addr < 24577){
+            do Memory.poke(addr, 0);
+            let addr = addr + 1;
+        }
+        return;
     }
 
     /** Sets the current color, to be used for all subsequent drawXXX commands.
      *  Black is represented by true, white by false. */
     function void setColor(boolean b) {
+        let current_color = b;
+        return;
     }
 
     /** Draws the (x,y) pixel, using the current color. */
     function void drawPixel(int x, int y) {
-        //Pixel (x, y) is pixel #2^9y + x
-        //Divide by 16 + Sreen memory location to get it's memory location
-        //Within its memory location, (x, y) is pixel # x mod 16
-        //x mod 16 is the same as x & 15 (0000000000001111)
-
-        //Use Memory.peek() to read contents of memory location
-        //Set bit (x mod 16)
-            //To set bit i to one
-            //v = v | 2^i
-            
-            //To set bit i to zero
-            // v = v & -2^i
-        //Write it back with Memory.poke()
+        var int addr, value, mod;
+        let addr = (x / 16) + (y * 32) + 16384;
+        let mod = x & 15;
+        let value = Memory.peek(addr);
+        if (current_color){
+            let value = value | powersOfTwo[mod];
+        } else {
+            let value = value & (~(powersOfTwo[mod]));
+        }
+        do Memory.poke(addr, value);
+        return;
     }
 
     /** Draws a line from pixel (x1,y1) to pixel (x2,y2), using the current color. */
     function void drawLine(int x1, int y1, int x2, int y2) {
+        var int x, y, dx, dy, a, b, diff;
+        var boolean upleft;
+        let a = 0;
+        let b = 0;
+        let diff = 0;
+
+        if (x1 < x2){
+            let x = x1;
+            let y = y1;
+            let dx = Math.abs(x2 - x1);
+            let dy = Math.abs(y2 - y1);
+            let upleft = (y2 - y1) > 0;
+        } else {
+            let x = x2;
+            let y = y2;
+            let dx = Math.abs(x1 - x2);
+            let dy = Math.abs(y1 - y2); 
+            let upleft = (y1 - y2) > 0;
+        }
+
+        if (dx = 0){
+            if (y1 < y2){
+                do Screen.drawVertLine(x1, y1, x2, y2);
+                return;
+            } else {
+                do Screen.drawVertLine(x2, y2, x1, y1);
+                return;
+            }
+        }
+        if (dy = 0){
+            if (x1 < x2){
+                do Screen.drawHorzLine(x1, y1, x2, y2);
+                return;
+            } else {
+                do Screen.drawHorzLine(x2, y2, x1, y1);
+                return;     
+            }
+        }
+        while ((a < (dx + 1)) & ((b < (dy + 1)))){
+            if (upleft){
+                do Screen.drawPixel((x + a), (y + b));
+            } else {
+                do Screen.drawPixel((x + a), (y - b));
+            }
+            if (diff < 0){
+                let a = a + 1;
+                let diff = diff + dy;
+            } else {
+                let b = b + 1;
+                let diff = diff - dx;
+            }
+        }
+
+
+
+        return;
+
         //Bresenhan's Algorithm
         //Look at book to work through
         //Careful to handle all directions
         //Maybe special cases for horizontal and or vertical lines
     }
 
+    /** Draws a line from the top down */
+    function void drawVertLine(int x1, int y1, int x2, int y2){
+        var int cur_y;
+        let cur_y = y1;
+        while (cur_y < (y2 + 1)){
+            do Screen.drawPixel(x1, cur_y);
+            let cur_y = cur_y + 1;
+        }
+        return;
+    }
+
+    /** Draws a line from left to right */
+    function void drawHorzLine(int x1, int y1, int x2, int y2){
+        var int cur_x;
+        let cur_x = x1;
+        while (cur_x < (x2 + 1)){
+            do Screen.drawPixel(cur_x, y1);
+            let cur_x = cur_x + 1;
+        }
+        return;
+    }
+
     /** Draws a filled rectangle whose top left corner is (x1, y1)
      * and bottom right corner is (x2,y2), using the current color. */
     function void drawRectangle(int x1, int y1, int x2, int y2) {
+        var int cur_y;
+        let cur_y = y1;
+        while (cur_y < (y2 + 1)){
+            do Screen.drawHorzLine(x1, cur_y, x2, cur_y);
+            let cur_y = cur_y + 1;
+        }
+        return;
+
         //Just draw a bunch of horizontal lines
         //Could make a helper function for drawing horizontal lines
         //If have time, can optimize horizontal line drawing
@@ -64,6 +168,16 @@ class Screen {
 
     /** Draws a filled circle of radius r<=181 around (x,y), using the current color. */
     function void drawCircle(int x, int y, int r) {
+        var in dy, r2, dy2;
+        let dy = -r;
+        let r2 = r * r;
+
+        while (~(dy = r)){
+            let dy2 = dy * dy;
+            do Screen.drawHorzLine((x - Math.sqrt(r2 - dy2)), (y + dy), (x + Math.sqrt(r2 - dy2)), (y + dy));
+            let dy = dy + 1;
+        }
+        return;
         //Just watch vid back
     }
 }
